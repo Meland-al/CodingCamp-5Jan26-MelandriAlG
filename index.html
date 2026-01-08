@@ -3,9 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>To do list</title>
+    <link rel="stylesheet" href="css/style.css"/>
 </head>
 <body>
-    
+    <header class="app-header">
+        <h1>To Do List</h1>
+        <p class="subtitle">Tambah, Filter, dan Kelola tugas harianmu!</p>
+    </header>
+    <main class="container">
+    <!-- Form To-Do -->
+    <section class="card">
+      <h2>Tambah Tugas</h2>
+      <form id="todo-form" novalidate>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="taskInput">Nama tugas</label>
+            <input type="text" id="taskInput" name="task" placeholder="Contoh: Review materi UI/UX"/>
+            <small class="error" id="taskError"></small>
+          </div>
+
+          <div class="form-group">
+            <label for="dateInput">Jatuh tempo</label>
+            <input type="date" id="dateInput" name="dueDate"/>
+            <small class="error" id="dateError"></small>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn primary">Tambah</button>
+          <button type="reset" class="btn ghost" id="resetFormBtn">Reset</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Filter -->
+    <section class="card">
+      <h2>Filter</h2>
+      <div class="filter-grid">
+        <div class="form-group">
+          <label for="statusFilter">Status</label>
+          <select id="statusFilter">
+            <option value="all">Semua</option>
+            <option value="pending">Pending</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="dateFilter">Tanggal (opsional)</label>
+          <input type="date" id="dateFilter"/>
+        </div>
+        <div class="actions">
+          <button class="btn" id="applyFilterBtn">Terapkan Filter</button>
+          <button class="btn ghost" id="clearFilterBtn">Bersihkan Filter</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabel To-Do -->
+    <section class="card">
+      <h2>Daftar Tugas</h2>
+      <div class="table-wrapper">
+        <table id="todoTable" aria-describedby="todoTableCaption">
+          <caption id="todoTableCaption" class="sr-only">Tabel daftar tugas dengan aksi</caption>
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Due Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="todoBody">
+            <!-- Baris tugas akan di-render via JS -->
+          </tbody>
+        </table>
+      </div>
+      <p id="emptyState" class="empty-state">Belum ada tugas. Tambahkan tugas pertama kamu!</p>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <small>© 2026 Mini Coding Project RevoU— Dibuat untuk tugas To-Do List</small>
+  </footer>
+
+  <script src="js/script.js"></script>
+</body>
+</html>
 </body>
 </html>

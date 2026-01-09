@@ -1,94 +1,89 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>To do list</title>
-    <link rel="stylesheet" href="css/style.css"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>To‑Do List</title>
+
+  <!-- CSS (satu file saja) -->
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-    <header class="app-header">
-        <h1>To Do List</h1>
-        <p class="subtitle">Tambah, Filter, dan Kelola tugas harianmu!</p>
-    </header>
-    <main class="container">
-    <!-- Form To-Do -->
-    <section class="card">
-      <h2>Tambah Tugas</h2>
-      <form id="todo-form" novalidate>
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="taskInput">Nama tugas</label>
-            <input type="text" id="taskInput" name="task" placeholder="Contoh: Review materi UI/UX"/>
-            <small class="error" id="taskError"></small>
-          </div>
+  <header class="container">
+    <h1>To‑Do List</h1>
+    <p class="subtitle">Tambah, filter, dan kelola tugas dengan status fleksibel</p>
+  </header>
 
-          <div class="form-group">
-            <label for="dateInput">Jatuh tempo</label>
-            <input type="date" id="dateInput" name="dueDate"/>
-            <small class="error" id="dateError"></small>
-          </div>
-        </div>
+  <main class="container">
+    <!-- Form input -->
+    <form id="todo-form" novalidate aria-label="Form tambah tugas">
+      <div class="field">
+        <label for="task">Tugas</label>
+        <input id="task" name="task" type="text" placeholder="Contoh: Review PR tim" required />
+        <small class="error" id="task-error" hidden>Isi deskripsi tugas (min. 3 karakter).</small>
+      </div>
 
-        <div class="actions">
-          <button type="submit" class="btn primary">Tambah</button>
-          <button type="reset" class="btn ghost" id="resetFormBtn">Reset</button>
-        </div>
-      </form>
-    </section>
+      <div class="field">
+        <label for="due">Tanggal jatuh tempo</label>
+        <input id="due" name="due" type="date" />
+        <small class="hint">Opsional</small>
+      </div>
 
-    <!-- Filter -->
-    <section class="card">
-      <h2>Filter</h2>
-      <div class="filter-grid">
-        <div class="form-group">
-          <label for="statusFilter">Status</label>
-          <select id="statusFilter">
-            <option value="all">Semua</option>
-            <option value="pending">Pending</option>
-            <option value="done">Done</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="dateFilter">Tanggal (opsional)</label>
-          <input type="date" id="dateFilter"/>
-        </div>
-        <div class="actions">
-          <button class="btn" id="applyFilterBtn">Terapkan Filter</button>
-          <button class="btn ghost" id="clearFilterBtn">Bersihkan Filter</button>
-        </div>
+      <div class="field">
+        <label for="status">Status</label>
+        <input id="status" name="status" type="text" list="status-presets" placeholder="Contoh: Urgent, In Progress" />
+        <datalist id="status-presets">
+          <option value="Urgent"></option>
+          <option value="In Progress"></option>
+          <option value="Low Priority"></option>
+          <option value="Completed"></option>
+        </datalist>
+        <small class="hint">Bisa isi bebas. Gunakan preset jika mau.</small>
+        <small class="error" id="status-error" hidden>Status min. 2 karakter, huruf/angka saja.</small>
+      </div>
+
+      <div class="actions">
+        <button type="submit" id="add-btn">Tambah</button>
+        <button type="button" id="clear-btn" class="secondary">Bersihkan semua</button>
+      </div>
+    </form>
+
+    <!-- Kontrol filter -->
+    <section id="controls" aria-label="Kontrol filter">
+      <div class="filter-row">
+        <label for="filter">Filter status</label>
+        <select id="filter">
+          <option value="all">Semua</option>
+          <!-- Opsi status akan diisi dinamis -->
+        </select>
+        <button type="button" id="reset-filter" class="secondary">Reset filter</button>
       </div>
     </section>
 
-    <!-- Tabel To-Do -->
-    <section class="card">
-      <h2>Daftar Tugas</h2>
-      <div class="table-wrapper">
-        <table id="todoTable" aria-describedby="todoTableCaption">
-          <caption id="todoTableCaption" class="sr-only">Tabel daftar tugas dengan aksi</caption>
-          <thead>
-            <tr>
-              <th>Task</th>
-              <th>Due Date</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="todoBody">
-            <!-- Baris tugas akan di-render via JS -->
-          </tbody>
-        </table>
-      </div>
-      <p id="emptyState" class="empty-state">Belum ada tugas. Tambahkan tugas pertama kamu!</p>
+    <!-- Daftar tugas -->
+    <section id="list-container" aria-live="polite" aria-label="Daftar tugas">
+      <table id="todo-table">
+        <thead>
+          <tr>
+            <th>Tugas</th>
+            <th>Jatuh Tempo</th>
+            <th>Status</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Baris tugas akan dirender oleh JS -->
+        </tbody>
+      </table>
+      <p id="empty-state" class="empty" hidden>Tidak ada tugas.</p>
     </section>
   </main>
 
-  <footer class="app-footer">
-    <small>© 2026 Mini Coding Project RevoU— Dibuat untuk tugas To-Do List</small>
+  <footer class="container">
+    <small>Disimpan lokal di browser. Siap di-publish via GitHub Pages.</small>
   </footer>
 
-  <script src="js/script.js"></script>
-</body>
-</html>
+  <!-- JS (satu file saja) -->
+  <script src="js/script.js" defer></script>
 </body>
 </html>

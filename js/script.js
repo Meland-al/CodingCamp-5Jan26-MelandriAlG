@@ -1,207 +1,185 @@
-// State aplikasi: satu sumber kebenaran
-let todos = []; // { id, task, dueDate, status: 'pending'|'done' }
+'use strict';
 
-// Elemen DOM
-const form = document.getElementById('todo-form');
-const taskInput = document.getElementById('taskInput');
-const dateInput = document.getElementById('dateInput');
-const taskError = document.getElementById('taskError');
-const dateError = document.getElementById('dateError');
+/**
+ * To-Do List dengan status fleksibel, filter dinamis, dan localStorage.
+ * Satu file JS saja sesuai brief. Minim error (try/catch, validasi).
+ */
 
-const statusFilter = document.getElementById('statusFilter');
-const dateFilter = document.getElementById('dateFilter');
-const applyFilterBtn = document.getElementById('applyFilterBtn');
-const clearFilterBtn = document.getElementById('clearFilterBtn');
+const STORAGE_KEY = 'todo_app_v2';
+let todos = [];
 
-const tableBody = document.getElementById('todoBody');
-const emptyState = document.getElementById('emptyState');
-const resetFormBtn = document.getElementById('resetFormBtn');
-
-// Util: format tanggal ke ID
-function formatDateISOToLocal(iso) {
-  // iso: 'YYYY-MM-DD'
-  if (!iso) return '';
-  const [y,m,d] = iso.split('-');
-  return ${d}/${m}/${y};
+// Util: escape HTML agar aman disisipkan ke DOM
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
 }
 
-// Validasi form
-function validateForm() {
-  let valid = true;
-  const taskVal = taskInput.value.trim();
-  const dateVal = dateInput.value;
-
-  // Task wajib, minimal 3 karakter
-  if (!taskVal) {
-    taskError.textContent = 'Nama tugas tidak boleh kosong.';
-    valid = false;
-  } else if (taskVal.length < 3) {
-    taskError.textContent = 'Minimal 3 karakter.';
-    valid = false;
-  } else {
-    taskError.textContent = '';
-  }
-
-  // Due date wajib, tidak boleh sebelum hari ini
-  if (!dateVal) {
-    dateError.textContent = 'Tanggal wajib diisi.';
-    valid = false;
-  } else {
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const inputDate = new Date(dateVal);
-    if (isNaN(inputDate.getTime())) {
-      dateError.textContent = 'Format tanggal tidak valid.';
-      valid = false;
-    } else if (inputDate < today) {
-      dateError.textContent = 'Tanggal tidak boleh mundur dari hari ini.';
-      valid = false;
-    } else {
-      dateError.textContent = '';
-    }
-  }
-
-  return valid;
+// Validasi input
+function validateTask(task) {
+  return typeof task === 'string' && task.trim().length >= 3;
+}
+function validateStatus(status) {
+  if (!status) return true; // status boleh kosong, akan dianggap "Unspecified"
+  const s = status.trim();
+  if (s.length < 2) return false;
+  // hanya huruf, angka, spasi, dash, underscore
+  return /^[\w\s\-]+$/.test(s);
+}
+function normalizeStatus(status) {
+  const s = (status || '').trim();
+  return s.length ? s : 'Unspecified';
 }
 
-// Render tabel
-function renderTable(data = todos) {
-  tableBody.innerHTML = '';
+// Storage
+function saveToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+  } catch (err) {
+    console.error('Gagal menyimpan ke storage:', err);
+  }
+}
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (err) {
+    console.error('Gagal membaca storage, akan reset:', err);
+    return [];
+  }
+}
 
-  if (data.length === 0) {
-    emptyState.style.display = 'block';
+// Status unik untuk filter
+function getUniqueStatuses() {
+  const set = new Set(todos.map(t => t.status));
+  return Array.from(set).sort((a, b) => a.localeCompare(b));
+}
+function updateFilterOptions() {
+  const select = document.getElementById('filter');
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = '<option value="all">Semua</option>';
+  getUniqueStatuses().forEach(status => {
+    const opt = document.createElement('option');
+    opt.value = status;
+    opt.textContent = status;
+    select.appendChild(opt);
+  });
+  // kembalikan pilihan sebelumnya jika ada
+  const hasPrev = Array.from(select.options).some(o => o.value === current);
+  select.value = hasPrev ? current : 'all';
+}
+
+// Render
+function renderTodos(filter = 'all') {
+  const tbody = document.querySelector('#todo-table tbody');
+  const empty = document.getElementById('empty-state');
+  if (!tbody || !empty) return;
+
+  tbody.innerHTML = '';
+  const list = todos.filter(t => filter === 'all' ? true : t.status === filter);
+
+  if (list.length === 0) {
+    empty.hidden = false;
     return;
+  } else {
+    empty.hidden = true;
   }
-  emptyState.style.display = 'none';
 
-  data.forEach(({ id, task, dueDate, status }) => {
+  list.forEach(t => {
     const tr = document.createElement('tr');
-
-    // Task
-    const tdTask = document.createElement('td');
-    tdTask.textContent = task;
-
-    // Due Date
-    const tdDate = document.createElement('td');
-    tdDate.textContent = formatDateISOToLocal(dueDate);
-
-    // Status
-    const tdStatus = document.createElement('td');
-    const badge = document.createElement('span');
-    badge.className = badge ${status};
-    badge.textContent = status === 'pending' ? 'Pending' : 'Done';
-    tdStatus.appendChild(badge);
-
-    // Actions
-    const tdActions = document.createElement('td');
-    const row = document.createElement('div');
-    row.className = 'action-row';
-
-    const toggleBtn = document.createElement('button');
-    toggleBtn.className = 'btn small outline';
-    toggleBtn.textContent = status === 'pending' ? 'Mark Done' : 'Mark Pending';
-    toggleBtn.addEventListener('click', () => toggleStatus(id));
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn small danger';
-    deleteBtn.textContent = 'Delete';
-    deleteBtn.addEventListener('click', () => deleteTodo(id));
-
-    row.appendChild(toggleBtn);
-    row.appendChild(deleteBtn);
-    tdActions.appendChild(row);
-
-    tr.appendChild(tdTask);
-    tr.appendChild(tdDate);
-    tr.appendChild(tdStatus);
-    tr.appendChild(tdActions);
-
-    tableBody.appendChild(tr);
+    tr.innerHTML = `
+      <td>${escapeHtml(t.task)}</td>
+      <td>${t.due ? escapeHtml(t.due) : '-'}</td>
+      <td><span class="badge">${escapeHtml(t.status)}</span></td>
+      <td>
+        <button class="danger" data-action="delete" data-id="${t.id}">Hapus</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
   });
 }
 
-// Tambah todo
-function addTodo(task, dueDate) {
-  const newTodo = {
-    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
-    task,
-    dueDate, // 'YYYY-MM-DD'
-    status: 'pending'
+// CRUD
+function addTodo({ task, due, status }) {
+  const todo = {
+    id: Date.now().toString(),
+    task: task.trim(),
+    due: due || '',
+    status: normalizeStatus(status)
   };
-  todos.push(newTodo);
-  persist();
-  renderTable();
+  todos.push(todo);
+  saveToStorage();
+  updateFilterOptions();
+  renderTodos(document.getElementById('filter').value);
 }
-
-// Toggle status
-function toggleStatus(id) {
-  todos = todos.map(t => t.id === id ? { ...t, status: t.status === 'pending' ? 'done' : 'pending' } : t);
-  persist();
-  applyFilter(); // agar view konsisten dgn filter aktif
-}
-
-// Delete todo
 function deleteTodo(id) {
   todos = todos.filter(t => t.id !== id);
-  persist();
-  applyFilter();
+  saveToStorage();
+  updateFilterOptions();
+  renderTodos(document.getElementById('filter').value);
+}
+function clearAll() {
+  if (!confirm('Hapus semua tugas?')) return;
+  todos = [];
+  saveToStorage();
+  updateFilterOptions();
+  renderTodos('all');
 }
 
-// Filter
-function applyFilter() {
-  const statusVal = statusFilter.value; // all | pending | done
-  const dateVal = dateFilter.value;     // '' | 'YYYY-MM-DD'
-
-  let result = [...todos];
-  if (statusVal !== 'all') {
-    result = result.filter(t => t.status === statusVal);
-  }
-  if (dateVal) {
-    result = result.filter(t => t.dueDate === dateVal);
-  }
-  renderTable(result);
-}
-
-function clearFilter() {
-  statusFilter.value = 'all';
-  dateFilter.value = '';
-  renderTable();
-}
-
-// Persist ke localStorage agar tidak hilang saat refresh
-function persist() {
-  localStorage.setItem('sefc_todos', JSON.stringify(todos));
-}
-
-function loadFromStorage() {
-  try {
-    const raw = localStorage.getItem('sefc_todos');
-    todos = raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    todos = [];
-  }
-}
-
-// Event listeners
-form.addEventListener('submit', (e) => {
+// Event handlers
+function onSubmit(e) {
   e.preventDefault();
-  if (!validateForm()) return;
+  const taskEl = document.getElementById('task');
+  const dueEl = document.getElementById('due');
+  const statusEl = document.getElementById('status');
 
-  const taskVal = taskInput.value.trim();
-  const dateVal = dateInput.value;
+  const task = taskEl.value;
+  const due = dueEl.value;
+  const status = statusEl.value;
 
-  addTodo(taskVal, dateVal);
-  form.reset();
-});
+  // validasi
+  const taskValid = validateTask(task);
+  const statusValid = validateStatus(status);
 
-resetFormBtn.addEventListener('click', () => {
-  taskError.textContent = '';
-  dateError.textContent = '';
-});
+  document.getElementById('task-error').hidden = taskValid;
+  document.getElementById('status-error').hidden = statusValid;
 
-applyFilterBtn.addEventListener('click', applyFilter);
-clearFilterBtn.addEventListener('click', clearFilter);
+  if (!taskValid || !statusValid) return;
 
-// Init
-loadFromStorage();
-renderTable();
+  addTodo({ task, due, status });
+  e.target.reset();
+}
+function onTableClick(e) {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const action = btn.dataset.action;
+  if (action === 'delete') deleteTodo(id);
+}
+function onFilterChange(e) {
+  renderTodos(e.target.value);
+}
+function onResetFilter() {
+  const filterEl = document.getElementById('filter');
+  filterEl.value = 'all';
+  renderTodos('all');
+}
+
+function init() {
+  // Load
+  todos = loadFromStorage();
+
+  // Events
+  document.getElementById('todo-form').addEventListener('submit', onSubmit);
+  document.getElementById('clear-btn').addEventListener('click', clearAll);
+  document.querySelector('#todo-table tbody').addEventListener('click', onTableClick);
+  document.getElementById('filter').addEventListener('change', onFilterChange);
+  document.getElementById('reset-filter').addEventListener('click', onResetFilter);
+
+  // First render
+  updateFilterOptions();
+  renderTodos('all');
+}
+
+document.addEventListener('DOMContentLoaded', init);
